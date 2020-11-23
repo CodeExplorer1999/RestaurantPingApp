@@ -3,10 +3,16 @@ package com.example.sofe4640restaurant;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
+import androidx.core.app.NotificationBuilderWithBuilderAccessor;
+import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.FragmentActivity;
 
 import android.Manifest;
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.content.pm.PackageManager;
 import android.location.Address;
 import android.location.Geocoder;
@@ -53,6 +59,8 @@ public class MapsActivity extends FragmentActivity implements
     private double latitude, longitude;
     private int ProximityRadius = 10000;
 
+    LatLng user_latLng;//User Location Var
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -89,19 +97,22 @@ public class MapsActivity extends FragmentActivity implements
                         addressList = geocoder.getFromLocationName(address, 6);
 
                         if(addressList != null){
-
                             for (int i =0; i<addressList.size(); i++){
                                 Address userAddress = addressList.get(i);
                                 LatLng latLng = new LatLng(userAddress.getLatitude(), userAddress.getLongitude());
+//                                Toast.makeText(MapsActivity.this, "Lat: " + user_latLng.latitude + " Long: " + user_latLng.longitude, Toast.LENGTH_LONG).show();
+                                //Call function here that is gonna take a given address and ping the user if they are nearby the address
+                                if(nearUser(user_latLng, user_latLng)) {
+                                    Toast.makeText(MapsActivity.this, "You're Near the restaurant!", Toast.LENGTH_LONG).show();
 
-                                userMarkerOptions.position(latLng);
-                                userMarkerOptions.title(address);
-                                userMarkerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE));
+                                    userMarkerOptions.position(latLng);
+                                    userMarkerOptions.title(address);
+                                    userMarkerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE));
 
-                                mMap.addMarker(userMarkerOptions);
-                                mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
-                                mMap.animateCamera(CameraUpdateFactory.zoomTo(10));
-
+                                    mMap.addMarker(userMarkerOptions);
+                                    mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
+                                    mMap.animateCamera(CameraUpdateFactory.zoomTo(10));
+                                }
                             }
 
                         }else{
@@ -126,12 +137,76 @@ public class MapsActivity extends FragmentActivity implements
                 getNearbyPlaces.execute(transferData);
                 Toast.makeText(this, "Searching for Nearby Restaurants...", Toast.LENGTH_SHORT).show();
                 Toast.makeText(this, "Showing Nearby Restaurants...", Toast.LENGTH_SHORT).show();
+
+                //TODO: Notify the User Here
+                createNotificationChannel();    //Calling function that creates the notification channel
+                /* Create notification to send to the user */
+                NotificationCompat.Builder builder = new NotificationCompat.Builder(this, "near_food")
+                        .setSmallIcon(R.drawable.ic_baseline_fastfood_24)   //Get's custom made logo. Color very nice
+                        .setContentTitle("I'd Eat There")
+                        .setContentText("Hey there are Restaurants Nearby!")
+                        .setPriority(NotificationCompat.PRIORITY_HIGH);
+
+                NotificationManagerCompat notificationManagerCompat = NotificationManagerCompat.from(this); //Setting up notification manager
+                notificationManagerCompat.notify(100, builder.build() );    //Notifying User
                 break;
         }
 
-
     }
 
+    /**
+     * Function that creates the notification channel
+     */
+    private void createNotificationChannel() {
+
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            CharSequence name = "restaurant_channel";
+            String desc = "Channel for restaurant notification";
+            int importance = NotificationManager.IMPORTANCE_DEFAULT;
+            NotificationChannel channel = new NotificationChannel("near_food", name, importance);
+            channel.setDescription(desc);
+
+            NotificationManager notificationManager = getSystemService(NotificationManager.class);
+            notificationManager.createNotificationChannel(channel);
+        }
+    }
+
+    /**
+     * This function is to calculate the difference in kilometers between the user and the given restaurant
+     * @param user_loc  The lattitude and longitude data of the user
+     * @param food_loc  The lattitude and longitude data of the restaurant
+     * @return True, if the restaurant is within 5 km and false if it is farther away
+     */
+    private Boolean nearUser(LatLng user_loc, LatLng food_loc) {
+
+        //TODO: Calculate distance between user and restaurant locations
+        /*Getting distance between the two lattitudes and longitudes using the Haversine formula*/
+        //Saw this on https://stackoverflow.com/questions/27928/calculate-distance-between-two-latitude-longitude-points-haversine-formula
+        //Explanation at https://en.wikipedia.org/wiki/Haversine_formula
+        int R = 6371;   //Radius of the Earth (km)
+        double lat_diff = deg2Rad(user_loc.latitude - food_loc.latitude);
+        double lon_diff = deg2Rad(user_loc.longitude - food_loc.longitude);
+        //Bunch of math to get the value of the haversine function
+        double h = Math.sin(lat_diff / 2) * Math.sin(lat_diff / 2) +
+                Math.cos(deg2Rad(food_loc.latitude)) * Math.cos(deg2Rad(user_loc.latitude)) *
+                        Math.sin(lon_diff/2) * Math.sin(lon_diff/2);
+        double dist = 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));   //Getting the distance from the haversine function
+        //Note: The dist var above actually gets a fraction of the actual distance over the earth's radius so to get the
+        // actual distance we multiply it with earth's radius
+        double dist_km = dist * R;  //Gets the distance in km
+        /*Returning true if the distance is less than 5 km, otherwise returning false*/
+        dist_km = Math.abs(dist_km);
+        if(dist_km <= 5) {
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+
+    private double deg2Rad(double deg) {
+        return deg * (Math.PI/180);
+    }
 
     private String getUrl(double latitude, double longitude, String restaurant){
         StringBuilder googleURL = new StringBuilder("https://maps.googleapis.com/maps/api/place/nearbysearch/json?");
@@ -208,7 +283,7 @@ public class MapsActivity extends FragmentActivity implements
 
         APIClient.connect();
     }
-
+    /*TODO: Funtion that gets User location */
     @Override
     public void onLocationChanged(@NonNull Location location) {
         latitude = location.getLatitude();
@@ -219,16 +294,16 @@ public class MapsActivity extends FragmentActivity implements
             currentLocationMarker.remove();
         }
 
-        LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
-
+        //LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
+        user_latLng = new LatLng(location.getLatitude(), location.getLongitude());
         MarkerOptions markerOptions = new MarkerOptions();
-        markerOptions.position(latLng);
+        markerOptions.position(user_latLng); //latLng is the location of the User
         markerOptions.title("Users Current Location");
         markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE));
 
         currentLocationMarker = mMap.addMarker(markerOptions);
 
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
+        mMap.moveCamera(CameraUpdateFactory.newLatLng(user_latLng));
         mMap.animateCamera(CameraUpdateFactory.zoomBy(8));
 
         if(APIClient != null){
