@@ -48,17 +48,9 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return data;
     }
 
-    public Cursor getItemID(String item) {
+    public void delItem(String name) {
         SQLiteDatabase db = this.getWritableDatabase();
-        String query = "SELECT " + COL0 + " FROM " + TABLE + " WHERE " + COL2 + " = '" + item + "'";
-
-        Cursor data = db.rawQuery(query, null);
-        return data;
-    }
-
-    public void delItem(String name, int id) {
-        SQLiteDatabase db = this.getWritableDatabase();
-        String query = "DELETE FROM " + TABLE + "' WHERE " + COL0 + " = '" + id + "' AND " + COL1 + "= '" + name + "'";
+        String query = "DELETE FROM " + TABLE + " WHERE " + COL1 + "= '" + name + "'";
         db.execSQL(query);
     }
 }

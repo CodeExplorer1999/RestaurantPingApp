@@ -1,5 +1,7 @@
 package com.sid.restaurantreminder;
 
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.database.Cursor;
 import android.os.Bundle;
@@ -38,20 +40,26 @@ public class ListDataActivity extends AppCompatActivity {
         ListAdapter adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, list);
         listView.setAdapter(adapter);
 
-        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+        listView.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
             @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+            public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
+
                 String str = parent.getItemAtPosition(position).toString();
 
-                Cursor data = dbHelper.getItemID(str);
-                int itemID = -1;
-                while(data.moveToNext()) {
-                    itemID = data.getInt(0);
-                }
-                Intent intent = new Intent(ListDataActivity.this, EditActivity.class);
-                intent.putExtra("id", itemID);
-                intent.putExtra("name", str);
-                startActivity(intent);
+                new AlertDialog.Builder(ListDataActivity.this)
+                        .setIcon(android.R.drawable.ic_delete)
+                        .setTitle("Delete")
+                        .setMessage("Do you want to delete item?")
+                        .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                dbHelper.delItem(str);
+                            }
+                        })
+                        .setNegativeButton("No", null)
+                        .show();
+
+                return true;
             }
         });
     }

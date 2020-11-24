@@ -38,7 +38,7 @@ public class EditActivity extends AppCompatActivity {
         delBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                dbHelper.delItem(name, id);
+                dbHelper.delItem(name);
                 editName.setText("");
             }
         });
