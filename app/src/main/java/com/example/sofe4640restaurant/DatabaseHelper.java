@@ -91,7 +91,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     public String getAddress(int index) {
         SQLiteDatabase db = this.getReadableDatabase();
         Cursor c = db.rawQuery("SELECT * FROM " + TABLE, null);
-        c.move(index);
+        c.moveToPosition(index);
         String address = c.getString(2);
 
         return address;
