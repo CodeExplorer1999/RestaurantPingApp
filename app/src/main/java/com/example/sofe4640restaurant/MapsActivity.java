@@ -13,7 +13,11 @@ import android.Manifest;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
+import android.database.DatabaseUtils;
+import android.database.sqlite.SQLiteDatabase;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
@@ -22,6 +26,8 @@ import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
+import android.widget.ArrayAdapter;
+import android.widget.AutoCompleteTextView;
 import android.widget.EditText;
 import android.widget.Toast;
 
@@ -40,8 +46,13 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.libraries.places.api.Places;
+import com.google.android.libraries.places.api.model.Place;
+import com.google.android.libraries.places.widget.Autocomplete;
+import com.google.android.libraries.places.widget.model.AutocompleteActivityMode;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 
 public class MapsActivity extends FragmentActivity implements
@@ -59,6 +70,7 @@ public class MapsActivity extends FragmentActivity implements
     private double latitude, longitude;
     private int ProximityRadius = 10000;
 
+    DatabaseHelper dbHelper;
     LatLng user_latLng;//User Location Var
 
     @Override
@@ -74,6 +86,8 @@ public class MapsActivity extends FragmentActivity implements
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
+
+
     }
 
     public void onClick(View v){
@@ -84,48 +98,85 @@ public class MapsActivity extends FragmentActivity implements
 
         switch (v.getId()){
             case R.id.search_String:
-                EditText searchField = (EditText) findViewById(R.id.search_bar);
-                String address = searchField.getText().toString();
-
-                List<Address> addressList = null;
+                // TODO: This is annoying
                 MarkerOptions userMarkerOptions = new MarkerOptions();
+                dbHelper = new DatabaseHelper(this);
+                Boolean foundNearbyRestaurant = false;
 
-                if(!TextUtils.isEmpty(address)){
-                    Geocoder geocoder = new Geocoder(this);
+                // Integrates the database with the map
+                for (int i = 0; i < dbHelper.getNumberOfEntries(); i++) {
+                    LatLng location_LatLng = dbHelper.getCoordinates(i);
+                    user_latLng = new LatLng(lastLocation.getLatitude(), lastLocation.getLongitude());
 
-                    try {
-                        addressList = geocoder.getFromLocationName(address, 6);
+                    if (nearUser(user_latLng, location_LatLng)) {
+                        Toast.makeText(MapsActivity.this, "You're Near the restaurant!", Toast.LENGTH_SHORT).show();
+                        userMarkerOptions.position(location_LatLng);
+                        userMarkerOptions.title(dbHelper.getAddress(i));
+                        userMarkerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN));
 
-                        if(addressList != null){
-                            for (int i =0; i<addressList.size(); i++){
-                                Address userAddress = addressList.get(i);
-                                LatLng latLng = new LatLng(userAddress.getLatitude(), userAddress.getLongitude());
-//                                Toast.makeText(MapsActivity.this, "Lat: " + user_latLng.latitude + " Long: " + user_latLng.longitude, Toast.LENGTH_LONG).show();
-                                //Call function here that is gonna take a given address and ping the user if they are nearby the address
-                                if(nearUser(user_latLng, user_latLng)) {
-                                    Toast.makeText(MapsActivity.this, "You're Near the restaurant!", Toast.LENGTH_LONG).show();
+                        mMap.addMarker(userMarkerOptions);
+                        mMap.moveCamera(CameraUpdateFactory.newLatLng(location_LatLng));
+                        mMap.animateCamera(CameraUpdateFactory.zoomTo(10));
 
-                                    userMarkerOptions.position(latLng);
-                                    userMarkerOptions.title(address);
-                                    userMarkerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE));
-
-                                    mMap.addMarker(userMarkerOptions);
-                                    mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
-                                    mMap.animateCamera(CameraUpdateFactory.zoomTo(10));
-                                }
-                            }
-
-                        }else{
-                            Toast.makeText(this, "Location not found...", Toast.LENGTH_SHORT).show();
-                        }
-
-                    } catch (IOException e) {
-                        e.printStackTrace();
+                        foundNearbyRestaurant = true;
                     }
                 }
-                else{
-                    Toast.makeText(this, "Please Enter a Location...", Toast.LENGTH_SHORT).show();
+
+                if (!foundNearbyRestaurant) {
+                    Toast.makeText(MapsActivity.this, "No restaurants nearby :(", Toast.LENGTH_SHORT).show();
                 }
+
+
+//                EditText searchField = (EditText) findViewById(R.id.search_bar);
+//                String address = searchField.getText().toString();
+//
+//                List<Address> addressList = null;
+//                MarkerOptions userMarkerOptions = new MarkerOptions();
+//
+//                // Ensure search_bar is not empty
+//                if(!TextUtils.isEmpty(address)) {
+//                    Geocoder geocoder = new Geocoder(this);
+//
+//                    try {
+//                        addressList = geocoder.getFromLocationName(address, 6);
+//
+//                        if(addressList != null || addressList.size() != 0) {
+//                            for (int i = 0; i < addressList.size(); i++){
+//                                Address userAddress = addressList.get(i);
+//                                LatLng latLng = new LatLng(userAddress.getLatitude(), userAddress.getLongitude());
+//                                Toast.makeText(MapsActivity.this, "Lat: " + user_latLng.latitude + " Long: " + user_latLng.longitude, Toast.LENGTH_LONG).show();
+//
+//                                Call function here that is gonna take a given address and ping the user if they are nearby the address
+//
+//                                for (int i = 0; i < ; i++) {
+//                                    LatLng restaurant_LatLng = db.entryAt(i);
+//
+//                                    if(nearUser(user_latLng, restaurant_LatLng)) {
+//                                        Toast.makeText(MapsActivity.this, "You're Near the restaurant!", Toast.LENGTH_LONG).show();
+//
+//                                        userMarkerOptions.position(latLng);
+//                                        userMarkerOptions.title(address);
+//                                        userMarkerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE));
+//
+//                                        mMap.addMarker(userMarkerOptions);
+//                                        mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
+//                                        mMap.animateCamera(CameraUpdateFactory.zoomTo(10));
+//                                    }
+//                                }
+//                            }
+//
+//                        }
+//                        else {
+//                            Toast.makeText(this, "Location not found...", Toast.LENGTH_SHORT).show();
+//                        }
+//
+//                    } catch (IOException e) {
+//                        e.printStackTrace();
+//                    }
+//                }
+//                else{
+//                    Toast.makeText(this, "Please Enter a Location...", Toast.LENGTH_SHORT).show();
+//                }
                 break;
 
             case R.id.FindCloseby:
@@ -134,11 +185,11 @@ public class MapsActivity extends FragmentActivity implements
                 transferData[0] = mMap;
                 transferData[1] = url;
 
+                // Calls Async task getNearbyPlaces()
                 getNearbyPlaces.execute(transferData);
                 Toast.makeText(this, "Searching for Nearby Restaurants...", Toast.LENGTH_SHORT).show();
                 Toast.makeText(this, "Showing Nearby Restaurants...", Toast.LENGTH_SHORT).show();
 
-                //TODO: Notify the User Here
                 createNotificationChannel();    //Calling function that creates the notification channel
                 /* Create notification to send to the user */
                 NotificationCompat.Builder builder = new NotificationCompat.Builder(this, "near_food")
@@ -179,7 +230,6 @@ public class MapsActivity extends FragmentActivity implements
      */
     private Boolean nearUser(LatLng user_loc, LatLng food_loc) {
 
-        //TODO: Calculate distance between user and restaurant locations
         /*Getting distance between the two lattitudes and longitudes using the Haversine formula*/
         //Saw this on https://stackoverflow.com/questions/27928/calculate-distance-between-two-latitude-longitude-points-haversine-formula
         //Explanation at https://en.wikipedia.org/wiki/Haversine_formula
@@ -221,8 +271,6 @@ public class MapsActivity extends FragmentActivity implements
         return googleURL.toString();
     }
 
-
-
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
@@ -252,7 +300,6 @@ public class MapsActivity extends FragmentActivity implements
             return true;
         }
     }
-
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
