@@ -96,4 +96,14 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
         return address;
     }
+
+    public String getAddressName(int index) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor c = db.rawQuery("SELECT * FROM " + TABLE, null);
+        c.moveToPosition(index);
+        String name = c.getString(1);
+
+        return name;
+
+    }
 }

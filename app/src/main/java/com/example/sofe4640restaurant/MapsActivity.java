@@ -118,6 +118,17 @@ public class MapsActivity extends FragmentActivity implements
                         mMap.moveCamera(CameraUpdateFactory.newLatLng(location_LatLng));
                         mMap.animateCamera(CameraUpdateFactory.zoomTo(10));
 
+                        createNotificationChannel();    //Calling function that creates the notification channel
+                        /* Create notification to send to the user */
+                        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, "near_food")
+                                .setSmallIcon(R.drawable.ic_baseline_fastfood_24)   //Get's custom made logo. Color very nice
+                                .setContentTitle("I'd Eat There")
+                                .setContentText("A Restaurants you saved is Nearby!")
+                                .setPriority(NotificationCompat.PRIORITY_HIGH);
+
+                        NotificationManagerCompat notificationManagerCompat = NotificationManagerCompat.from(this); //Setting up notification manager
+                        notificationManagerCompat.notify(100, builder.build() );    //Notifying User
+
                         foundNearbyRestaurant = true;
                     }
                 }
@@ -186,20 +197,10 @@ public class MapsActivity extends FragmentActivity implements
                 transferData[1] = url;
 
                 // Calls Async task getNearbyPlaces()
+
                 getNearbyPlaces.execute(transferData);
-                Toast.makeText(this, "Searching for Nearby Restaurants...", Toast.LENGTH_SHORT).show();
                 Toast.makeText(this, "Showing Nearby Restaurants...", Toast.LENGTH_SHORT).show();
 
-                createNotificationChannel();    //Calling function that creates the notification channel
-                /* Create notification to send to the user */
-                NotificationCompat.Builder builder = new NotificationCompat.Builder(this, "near_food")
-                        .setSmallIcon(R.drawable.ic_baseline_fastfood_24)   //Get's custom made logo. Color very nice
-                        .setContentTitle("I'd Eat There")
-                        .setContentText("Hey there are Restaurants Nearby!")
-                        .setPriority(NotificationCompat.PRIORITY_HIGH);
-
-                NotificationManagerCompat notificationManagerCompat = NotificationManagerCompat.from(this); //Setting up notification manager
-                notificationManagerCompat.notify(100, builder.build() );    //Notifying User
                 break;
         }
 
