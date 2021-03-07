@@ -1,2 +1,3 @@
 # RestaurantPingApp
-This is the application we have created for our mobile development final project. It is an app where users can register and enter restaurants near them into the app. The app will then store these restaurants and ping the user if they come near the location
+This is an app where users can register any restaurant they would like into the app. The app will then get the information from these restaurants using HTTP requests alongside the Google Maps Api and will store the collected data in an SQL database. The user will then receive a notification if they are within 5 kilometers of a saved restaurant.
+
