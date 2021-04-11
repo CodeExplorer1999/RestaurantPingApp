@@ -34,7 +34,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         // Initialize SDK and create new places client instance
-        Places.initialize(getApplicationContext(), "AIzaSyC0i6HrkgawswgC1nM9nue6siR9sDFmlsY");
+        Places.initialize(getApplicationContext(), ); //REMOVED GOOGLE MAPS KEY FROM 2ND PARAMETER
         PlacesClient placesClient = Places.createClient(this);
 
         // Initialize AutoComplete
